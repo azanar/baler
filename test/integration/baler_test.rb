@@ -101,9 +101,9 @@ class Baler::IntegrationTest < Test::Unit::TestCase
 
     def push(task)
       resolved_task = Hay::Task::Resolver.new(task)
-      @observer << resolved_task
       @queue.push(resolved_task)
       @queue.run
+      @observer << resolved_task
     end
 
     include Hay::Consumer
