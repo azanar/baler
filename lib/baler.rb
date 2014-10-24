@@ -1,6 +1,9 @@
 require 'baler/consumer'
 
 
+# Baler is a library for managing a pipelined worker queue backed by RabbitMQ.
+#
+# See more in the {file:README.md README}
 module Baler
   # Listen on behalf of an implementation Hay::Consumer we passed here, and pass received payloads to Hay::Consumer#push
   #
