@@ -39,7 +39,69 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+A system using Baler does so by instantiating {Publisher}s and {Consumer}s.
+
+### Publisher
+
+A `Publisher` accepts outbound messages and pass them along a `Hay::Route`, and are constructed on demand. 
+
+For example, imagine the following Route:
+
+```ruby
+class MyRoute
+  # A list of tasks that will have Consumers along this route
+  def self.tasks
+    [MyTask]
+  end
+
+  # Indicating this is a Route, which must happen *after* the task list
+  # declaration.
+  include Hay::Route
+end
+```
+
+This is a declaration that `MyRoute` is the proper Route for messages to the
+Consumer of `MyTask` instances.
+
+Detailed documentation on `Route` and `Task` classes can be found within the `Hay` project.
+
+With this route, a {Publisher} can be instantiated as follows:
+
+```ruby
+publisher = Baler::Publisher.new(MockRoute)
+```
+
+Messages can be sent to the Publisher instantiated above by calling
+`Publisher#publish` with a `Hay::Message` instance.
+
+```ruby
+task = MyTask.new(params)
+
+message = Hay::Message.new(my_task)
+
+publisher.publish(message)
+```
+
+### Consumers
+
+Consumers accept inbound messages and act on them. Consumers are typically persistent daemons since 
+messages could arrive on the associated queue at any time.
+
+The following code sets up a Consumer for `MyTask`, and sets it listening on
+the expected queue.
+
+```ruby
+class MyConsumer
+  def tasks
+    [MyTask]
+  end
+
+  include Hay::Consumer
+end
+
+consumer = Baler::Consumer.new(MyConsumer)
+consumer.listen
+```
 
 API Documentation
 -------------
@@ -50,6 +112,11 @@ Contributors
 ------------
 
 See [Contributing](CONTRIBUTING.md) for details.
+
+Todo
+----
+
+See [TODO](TODO.md) for
 
 License
 -------
