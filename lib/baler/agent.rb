@@ -11,7 +11,8 @@ module Baler
     # @param message [Hay::Message] the message to get published
     def publish(message)
       endpoint = message.destination
-      @publishers[endpoint] ||= Baler::Publisher.new(endpoint, @channel)
+      publisher = @publishers[endpoint] ||= Baler::Publisher.new(endpoint, @channel)
+      publisher.publish(message)
     end
   end
 end
