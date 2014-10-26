@@ -248,7 +248,7 @@ class Baler::IntegrationTest < Test::Unit::TestCase
     end
     bar_task_factory = TaskFactory.new('b')
 
-    bar_expector =bar_task_factory.expector(proc {|t| t.expects(:process)})
+    bar_expector = bar_task_factory.expector(proc {|t| t.expects(:process)})
 
     baz_task_factory = TaskFactory.new('c', [bar_task_factory])
 
@@ -300,7 +300,6 @@ class Baler::IntegrationTest < Test::Unit::TestCase
   end
 
   test "consumer on a many routes publishes more work" do
-    pend
     Thread.abort_on_exception = true
 
     params = 10.times.map do |x|
@@ -309,7 +308,7 @@ class Baler::IntegrationTest < Test::Unit::TestCase
 
     bar_task_factory = TaskFactory.new('d')
 
-    bar_expector =bar_task_factory.expector(proc {|t| t.expects(:process)})
+    bar_expector = bar_task_factory.expector(proc {|t| t.expects(:process)})
 
     baz_task_factory = TaskFactory.new('e', [bar_task_factory])
 
@@ -357,11 +356,17 @@ class Baler::IntegrationTest < Test::Unit::TestCase
     bar_observer.wait
     baz_observer.wait
 
-    bar_observed_tasks = bar_observer.tasks.each {|t| assert t.__getobj__.kind_of?(bar_task_factory.klass)}
-    baz_observed_tasks = baz_observer.tasks.each {|t| assert t.__getobj__.kind_of?(baz_task_factory.klass)}
+    puts bar_observer.inspect
+    puts baz_observer.inspect
+
+    bar_observed_tasks = bar_observer.tasks
+    baz_observed_tasks = baz_observer.tasks
 
     assert_equal bar_observed_tasks.length, 10
     assert_equal baz_observed_tasks.length, 10
+
+    bar_observed_tasks.each {|t| assert t.__getobj__.kind_of?(bar_task_factory.klass)}
+    baz_observed_tasks.each {|t| assert t.__getobj__.kind_of?(baz_task_factory.klass)}
 
     assert_equal Set.new(baz_observed_tasks.map(&:params)), Set.new(params)
     assert_equal Set.new(bar_observed_tasks.map(&:params)), Set.new(params.map {|p| p.merge({"foo" => "bar"})})
