@@ -90,17 +90,14 @@ class Baler::IntegrationTest < Test::Unit::TestCase
 
       attr_reader :tasks
 
-      def new(params)
-        t = MockRoute.new(params)
-
-        @expector.call(t)
-
-        t
+      def new(agent)
+        Route.new(@tasks, agent)
       end
     end
 
-    def initialize(task_factory)
-      @tasks = task_factory.tasks
+    def initialize(tasks, agent)
+      @tasks = tasks
+      super(agent)
     end
 
     include Hay::Route
@@ -117,7 +114,8 @@ class Baler::IntegrationTest < Test::Unit::TestCase
         @route = route
       end
 
-      attr_reader :consumers
+      attr_reader :observer
+      attr_reader :consumers 
 
       def new(agent)
         t = MockConsumer.new(agent,@route, @observer)
@@ -175,6 +173,10 @@ class Baler::IntegrationTest < Test::Unit::TestCase
 
     attr_reader :observer
 
+    def ours?(task)
+      super(task)
+    end
+
     def push(task)
       resolved_task = Hay::Task::Resolver.new(task)
 
@@ -192,13 +194,6 @@ class Baler::IntegrationTest < Test::Unit::TestCase
     include Hay::Consumer
   end
 
-  Thread.new do
-    loop do
-      sleep(1)
-      Thread.list
-    end
-  end
-
   test "simple publishing and consuming same route" do
     Thread.abort_on_exception = true
 
@@ -207,7 +202,10 @@ class Baler::IntegrationTest < Test::Unit::TestCase
     end
 
     task_factory = TaskFactory.new('a')
-    expector =task_factory.expector(proc {|t| t.expects(:process)})
+    expector =task_factory.expector(proc {|t| 
+      t.expects(:process)
+    })
+
     Hay::Tasks.register(expector)
     Hay::Task::Hydrators.register(expector, Hay::Task::Hydrator)
 
@@ -306,11 +304,11 @@ class Baler::IntegrationTest < Test::Unit::TestCase
       {'iteration' => x}
     end
 
-    bar_task_factory = TaskFactory.new('d')
+    bar_task_factory = TaskFactory.new('bar')
 
     bar_expector = bar_task_factory.expector(proc {|t| t.expects(:process)})
 
-    baz_task_factory = TaskFactory.new('e', [bar_task_factory])
+    baz_task_factory = TaskFactory.new('baz', [bar_task_factory])
 
     baz_expector = baz_task_factory.expector(proc {|t|
       t.expects(:process).with {|resulter| 
@@ -319,18 +317,20 @@ class Baler::IntegrationTest < Test::Unit::TestCase
       }
     })
 
-    Hay::Tasks.register(bar_expector)
-    Hay::Task::Hydrators.register(bar_expector, Hay::Task::Hydrator)
+    Hay::Tasks.register(bar_task_factory)
+    Hay::Task::Hydrators.register(bar_task_factory, Hay::Task::Hydrator)
 
 
     Hay::Tasks.register(baz_expector)
     Hay::Task::Hydrators.register(baz_expector, Hay::Task::Hydrator)
 
-    bar_route_factory = Route::Factory.new([bar_expector])
+    bar_route_factory = Route::Factory.new([bar_task_factory])
+    Hay::Routes.register(bar_route_factory)
 
     baz_route_factory = Route::Factory.new([baz_expector])
+    Hay::Routes.register(baz_route_factory)
 
-    publisher = Baler::Publisher.new(bar_route_factory)
+    publisher = Baler::Publisher.new(baz_route_factory)
 
     params.each do |p|
       message = Hay::Message.new(baz_task_factory.new(p))
@@ -355,9 +355,6 @@ class Baler::IntegrationTest < Test::Unit::TestCase
 
     bar_observer.wait
     baz_observer.wait
-
-    puts bar_observer.inspect
-    puts baz_observer.inspect
 
     bar_observed_tasks = bar_observer.tasks
     baz_observed_tasks = baz_observer.tasks

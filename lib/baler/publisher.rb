@@ -8,9 +8,7 @@ module Baler
   # Accepts {Hay::Message}s for the the queue at destination specified by {Hay::Router}
   class Publisher
     # @param router [Hay::Router] router this will send messages to.
-    def initialize(router)
-      channel = Hopper::Channel.new
-
+    def initialize(router, channel = Hopper::Channel.new)
       @hopper = Hopper::Queue.new(router.tasks.first.task_name).publisher(channel)
     end
 
